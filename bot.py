@@ -42,7 +42,7 @@ class Bot(commands.Bot):
 if __name__ == "__main__":
     bot = Bot(
         command_prefix=commands.when_mentioned_or("!"),
-        max_messages=10000,
+        max_messages=None,
         allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False),
         help_command=commands.MinimalHelpCommand()
         )
