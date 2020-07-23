@@ -4,6 +4,6 @@
 
 ## TODO
 
-- [ ] Implement main bot
+- [x] Implement main bot
 - [ ] Create basic cogs (e.g. faq, rules, info, etc.)
 - [ ] Write docs for everything
