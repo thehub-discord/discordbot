@@ -5,6 +5,7 @@ Created by vcokltfre - 2020-07-23
 import discord
 from discord.ext import commands
 from discord.ext.commands import has_any_role
+from pathlib import Path
 
 import logging
 import config
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         logger.info("Shutting down hub bot")
         await bot.logout()
 
-    cogs = []
+    cogs = ["cogs." + i.name[:-3] for i in Path("cogs/").glob("*.py")]
 
     bot.load_extensions(cogs)
     bot.run(config.TOKEN)
