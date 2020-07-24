@@ -11,7 +11,7 @@ from discord.ext import commands
 class AutoTranslation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.logger = logging.getLogger("salbot.cogs.autotranslation")
+        self.logger = logging.getLogger("hub_bot.cogs.autotranslation")
         self.translator = googletrans.Translator()
 
     @commands.Cog.listener()
