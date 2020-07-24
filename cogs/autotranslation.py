@@ -21,7 +21,7 @@ class AutoTranslation(commands.Cog):
         if message.author.bot:
             return
         detected = self.translator.detect(message.content)
-        if detected.confidence < .5:
+        if detected.confidence < .85:
             return
 
         translated = self.translator.translate(message.content)
