@@ -6,9 +6,12 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import has_any_role
 from pathlib import Path
+import sqlalchemy
+from sqlalchemy.orm import sessionmaker
 
 import logging
 import config
+import models
 
 logger = logging.getLogger("hub_bot")
 
@@ -18,6 +21,9 @@ class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.db_engine = sqlalchemy.create_engine(config.DATABASE_URI, echo=False)
+        self.db_session = self.db_engine.session
+        models.Base.metadata.create_all(self.db_engine)
 
     def add_cog(self, cog: commands.Cog) -> None:
         """Adds a cog to the bot and logs it."""
