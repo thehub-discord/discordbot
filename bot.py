@@ -22,7 +22,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db_engine = sqlalchemy.create_engine(config.DATABASE_URI, echo=False)
-        self.db_session = self.db_engine.session
+        self.db_session = sessionmaker()(bind=self.db_engine)
         models.Base.metadata.create_all(self.db_engine)
 
     def add_cog(self, cog: commands.Cog) -> None:
