@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord.ext.commands import has_any_role
 from pathlib import Path
 import sqlalchemy
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 import logging
 import config
@@ -22,7 +22,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db_engine = sqlalchemy.create_engine(config.DATABASE_URI, echo=False)
-        self.db_session = sessionmaker()(bind=self.db_engine)
+        self.db_session: Session = sessionmaker()(bind=self.db_engine)
         models.Base.metadata.create_all(self.db_engine)
 
     def add_cog(self, cog: commands.Cog) -> None:
@@ -49,7 +49,6 @@ class Bot(commands.Bot):
 if __name__ == "__main__":
     bot = Bot(
         command_prefix=commands.when_mentioned_or("!"),
-        max_messages=None,
         allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False),
         help_command=commands.MinimalHelpCommand()
         )
