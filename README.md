@@ -1,6 +1,6 @@
 # thehub-discord/discordbot
 
-## This is a custom discord bot for The Hub's Discord server
+## This the source code for the discord bot for The Hub's discord!
 
 ## TODO
 
