@@ -6,8 +6,11 @@ from discord.ext import commands, tasks
 import config
 import discord
 from models import User
-from aiohttp import ClientResponse
 from datetime import datetime
+import dateutil.parser
+import asyncio
+import math
+from copy import deepcopy
 
 
 class Points(commands.Cog):
@@ -56,27 +59,32 @@ class Points(commands.Cog):
                 pass
         await message.delete()
 
-    async def scan_for_commits(self, github_user):
-        request = await self.bot.http_session.get(f"https://api.github.com/users/{github_user}/received_events")
-        return await request.json()
+    async def get_commits(self, github_user, github_repo):
+        r = await self.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits", headers=self.auth_headers)
+        return await r.json()
 
     def parse_commits(self, commits_json: list):
         parsed_commits = []
-        for event in commits_json:
-            if event["type"] != "PushEvent":
-                continue
-            if not event["public"]:
-                continue
-            author = event["actor"]["login"]
-
-            for commit in event["payload"]["commits"]:
-                parsed_commit = {
-                    "author": author,
-                    "hash": commit["sha"],
-                    "block_size": event["payload"]["size"]
-                }
-                parsed_commits.append(parsed_commit)
+        for commit in commits_json:
+            parsed_commits.append({
+                "hash": commit["sha"],
+                "author": commit["author"]["login"] if commit["author"] is not None else commit["commit"]["author"],
+                "message": commit["commit"]["message"]
+            })
         return parsed_commits
+
+    async def request(self, *args, **kwargs):
+        r = await self.bot.http_session.request(*args, **kwargs)
+
+        headers = r.headers
+        if headers.get("X-RateLimit-Remaining", None) == "0":
+            reset_time = int(headers["X-RateLimit-Reset"])
+            current_time = datetime.utcnow().timestamp()
+            sleep_time = reset_time - current_time
+            self.logger.info(f"Ratelimited! Sleeping for {sleep_time}s")
+            await asyncio.sleep(sleep_time)
+            r = await self.request(*args, **kwargs)
+        return r
 
 
 
