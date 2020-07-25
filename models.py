@@ -19,3 +19,9 @@ class Commit(Base):
     __tablename__ = "commits"
     commit_id = Column(String, unique=True, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("users.id"))
+
+
+class Repository(Base):
+    __tablename__ = "repositories"
+    repository = Column(String, primary_key=True, unique=True)
+    submitter_id = Column(BigInteger, ForeignKey("users.id"))
