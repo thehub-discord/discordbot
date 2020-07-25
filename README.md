@@ -6,4 +6,5 @@
 
 - [x] Implement main bot
 - [ ] Create basic cogs (e.g. faq, rules, info, etc.)
+- [ ] User system
 - [ ] Write docs for everything
