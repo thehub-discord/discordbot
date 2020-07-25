@@ -7,10 +7,7 @@ import config
 import discord
 from models import User
 from datetime import datetime
-import dateutil.parser
 import asyncio
-import math
-from copy import deepcopy
 
 
 class Points(commands.Cog):
