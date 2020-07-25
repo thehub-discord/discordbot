@@ -6,6 +6,8 @@ from discord.ext import commands, tasks
 import config
 import discord
 from models import User
+from aiohttp import ClientResponse
+from datetime import datetime
 
 
 class Points(commands.Cog):
@@ -54,18 +56,28 @@ class Points(commands.Cog):
                 pass
         await message.delete()
 
-    async def fetch_notifications(self):
-        headers = self.auth_headers.copy()
-        body = {
-            "all": True
-        }
-        request = await self.bot.http_session.get(f"{self.github_baseuri}/notifications", headers=headers, json=body)
+    async def scan_for_commits(self, github_user):
+        request = await self.bot.http_session.get(f"https://api.github.com/users/{github_user}/received_events")
         return await request.json()
 
-    async def follow_repository(self, owner, repo):
-        request = await self.bot.http_session.put(f"{self.github_baseuri}/repos/{owner}/{repo}/subscription",
-                                                  headers=self.auth_headers, json={"subscribed": True})
-        return await request.json()
+    def parse_commits(self, commits_json: list):
+        parsed_commits = []
+        for event in commits_json:
+            if event["type"] != "PushEvent":
+                continue
+            if not event["public"]:
+                continue
+            author = event["actor"]["login"]
+
+            for commit in event["payload"]["commits"]:
+                parsed_commit = {
+                    "author": author,
+                    "hash": commit["sha"],
+                    "block_size": event["payload"]["size"]
+                }
+                parsed_commits.append(parsed_commit)
+        return parsed_commits
+
 
 
 def setup(bot):
