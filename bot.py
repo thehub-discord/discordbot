@@ -8,6 +8,7 @@ from discord.ext.commands import has_any_role
 from pathlib import Path
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker, Session
+from aiohttp import ClientSession
 
 import logging
 import config
@@ -23,6 +24,7 @@ class Bot(commands.Bot):
         super().__init__(*args, **kwargs)
         self.db_engine = sqlalchemy.create_engine(config.DATABASE_URI, echo=False)
         self.db_session: Session = sessionmaker()(bind=self.db_engine)
+        self.http_session = ClientSession()
         models.Base.metadata.create_all(self.db_engine)
 
     def add_cog(self, cog: commands.Cog) -> None:
@@ -32,6 +34,7 @@ class Bot(commands.Bot):
 
     def load_extensions(self, cogs: list):
         """Loads a list of cogs"""
+        self.load_extension("jishaku")
         for cog in cogs:
             try:
                 super().load_extension(cog)

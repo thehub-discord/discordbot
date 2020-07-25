@@ -2,7 +2,7 @@
 Created by Epic at 7/2/20
 """
 import logging
-from discord.ext import commands
+from discord.ext import commands, tasks
 import config
 import discord
 from models import User
@@ -13,6 +13,8 @@ class Points(commands.Cog):
         self.bot = bot
         self.logger = logging.getLogger("hub_bot.cogs.points")
         self.queue = []
+        self.auth_headers = {"Authorization": f"Token {config.GITHUB_TOKEN}"}
+        self.github_baseuri = "https://api.github.com"
 
     @commands.command()
     async def start(self, ctx: commands.Context, github: str):
@@ -51,6 +53,19 @@ class Points(commands.Cog):
             except discord.Forbidden:
                 pass
         await message.delete()
+
+    async def fetch_notifications(self):
+        headers = self.auth_headers.copy()
+        body = {
+            "all": True
+        }
+        request = await self.bot.http_session.get(f"{self.github_baseuri}/notifications", headers=headers, json=body)
+        return await request.json()
+
+    async def follow_repository(self, owner, repo):
+        request = await self.bot.http_session.put(f"{self.github_baseuri}/repos/{owner}/{repo}/subscription",
+                                                  headers=self.auth_headers, json={"subscribed": True})
+        return await request.json()
 
 
 def setup(bot):
