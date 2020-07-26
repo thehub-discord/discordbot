@@ -5,42 +5,39 @@ import logging
 from discord.ext import commands, tasks
 import config
 import discord
-from models import User
-from datetime import datetime
-import asyncio
+from models import User, Repository
+import re
 
 
 class Points(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.logger = logging.getLogger("hub_bot.cogs.points")
-        self.queue = []
+        self.github_account_verification_queue = []
+        self.github_repository_verification_queue = []
         self.auth_headers = {"Authorization": f"Token {config.GITHUB_TOKEN}"}
         self.github_baseuri = "https://api.github.com"
+        self.github_regex = re.compile("(https://github.com/)([A-z,-]*/[A-z,-]*)")
+        self.utils = self.bot.get_cog("Utils")
 
     @commands.command()
     async def start(self, ctx: commands.Context, github: str):
         if len(github) > 100:
             return await ctx.send("Invalid github username")
-        if ctx.author.id in self.queue:
+        if ctx.author.id in self.github_account_verification_queue:
             return await ctx.send("You are already in the queue!")
         if self.bot.db_session.query(User).get(ctx.author.id) is not None:
             return await ctx.send("You already have a github connected!")
-        self.queue.append(ctx.author.id)
+        self.github_account_verification_queue.append(ctx.author.id)
+        await ctx.send(
+            f"You have been put in queue for verification! I will dm you the result, make sure you have your DMs open!")
         embed = discord.Embed(title="Verify GitHub account",
                               description=f"User: {ctx.author.mention}\nGitHub username: {github}", color=0x00FFFF
                               )
-        message: discord.Message = await self.bot.get_channel(config.VERIFICATION_CHANNEL).send(embed=embed)
-        await message.add_reaction(config.ACCEPT_EMOJI)
-        await message.add_reaction(config.DENY_EMOJI)
-
-        def check(reaction: discord.Reaction, _):
-            return reaction.message.id == message.id
-
-        await ctx.send(f"You have been put in queue for verification! Your posision in queue: {len(self.queue)}")
-        r, _ = await self.bot.wait_for("reaction_add", check=check)
-        self.queue.remove(ctx.message.author.id)
-        if str(r) == config.ACCEPT_EMOJI:
+        github = github.lower()
+        mod_result = self.utils.mod_poll(embed)
+        self.github_account_verification_queue.remove(ctx.message.author.id)
+        if mod_result:
             try:
                 await ctx.author.send("Your github has been connected!")
             except discord.Forbidden:
@@ -54,10 +51,42 @@ class Points(commands.Cog):
                     "Your github connection has been denied! Remember to have the github integration on your account public & make sure it doesnt contain any typos!")
             except discord.Forbidden:
                 pass
-        await message.delete()
+
+    @commands.command(name="addrepo")
+    async def add_repository(self, ctx, github_link: str):
+        github_link = github_link.replace(".git", "").lower()
+        github_search = self.github_regex.search(github_link)
+        github_parsed = github_search.group(2)
+        if github_search is None or len(github_link) > 50:
+            return await ctx.send("This is not a valid github repository url!")
+        if github_parsed in self.github_repository_verification_queue:
+            return await ctx.send("This repository is already in the queue!")
+        if self.bot.db_session.query(Repository).get(github_parsed) is not None:
+            return await ctx.send("This repository has already been added!")
+
+        embed = discord.Embed(title="New repository",
+                              description=f"**Url**: {github_link}\n**Extracted**: {github_parsed}", color=0x55CC33)
+        await ctx.send("Your repository has been put in queue for verification!")
+        self.github_repository_verification_queue.append(github_link)
+        mod_result = await self.utils.mod_poll(embed)
+        self.github_repository_verification_queue.remove(github_link)
+        if mod_result:
+            self.bot.db_session.add(Repository(repository=github_parsed, submitter_id=ctx.author.id))
+            self.bot.db_session.commit()
+
+            try:
+                await ctx.author.send(f"The repository you submitted (`{github_parsed}`) got accepted!")
+            except discord.Forbidden:
+                pass
+        else:
+            try:
+                await ctx.author.send(f"The repository you submitted (`{github_parsed}`) got denied!")
+            except discord.Forbidden:
+                pass
 
     async def get_commits(self, github_user, github_repo):
-        r = await self.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits", headers=self.auth_headers)
+        r = await self.utils.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
+                                     headers=self.auth_headers)
         return await r.json()
 
     def parse_commits(self, commits_json: list):
@@ -69,20 +98,6 @@ class Points(commands.Cog):
                 "message": commit["commit"]["message"]
             })
         return parsed_commits
-
-    async def request(self, *args, **kwargs):
-        r = await self.bot.http_session.request(*args, **kwargs)
-
-        headers = r.headers
-        if headers.get("X-RateLimit-Remaining", None) == "0":
-            reset_time = int(headers["X-RateLimit-Reset"])
-            current_time = datetime.utcnow().timestamp()
-            sleep_time = reset_time - current_time
-            self.logger.info(f"Ratelimited! Sleeping for {sleep_time}s")
-            await asyncio.sleep(sleep_time)
-            r = await self.request(*args, **kwargs)
-        return r
-
 
 
 def setup(bot):
