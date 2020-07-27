@@ -74,6 +74,10 @@ class Points(commands.Cog):
         if self.bot.db_session.query(User).get(ctx.author.id) is None:
             return await ctx.send("You need to start first! Use `!start <github username>` to start!")
 
+        response = await self.bot.http_session.get(github_link)
+        if response.status != 200:
+            return await ctx.send("This repository does not exist!")
+
         embed = discord.Embed(title="New repository",
                               description=f"**Url**: {github_link}\n**Extracted**: {github_parsed}", color=0x55CC33)
         await ctx.send("Your repository has been put in queue for verification!")

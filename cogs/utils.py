@@ -8,6 +8,7 @@ from discord.ext import commands
 import config
 from datetime import datetime
 import asyncio
+from models import Repository
 
 
 class Utils(commands.Cog):
@@ -47,6 +48,12 @@ class Utils(commands.Cog):
     async def get_commits(self, github_user, github_repo):
         r = await self.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
                                headers=self.auth_headers)
+        if r.status != 200:
+            repo = f"{github_user}/{github_repo}"
+            print(f"Invalid repository submitted: {repo}")
+            self.bot.db_session.query(Repository).filter(Repository.repository == repo).delete()
+            self.bot.db_session.commit()
+            return []
         return await r.json()
 
     def parse_commits(self, commits_json: list):
