@@ -43,7 +43,7 @@ class Points(commands.Cog):
                               description=f"User: {ctx.author.mention}\nGitHub username: {github}", color=0x00FFFF
                               )
         github = github.lower()
-        mod_result = self.utils.mod_poll(embed)
+        mod_result = await self.utils.mod_poll(embed)
         self.github_account_verification_queue.remove(ctx.message.author.id)
         if mod_result:
             try:
