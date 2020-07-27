@@ -71,6 +71,8 @@ class Points(commands.Cog):
             return await ctx.send("This repository is already in the queue!")
         if self.bot.db_session.query(Repository).get(github_parsed) is not None:
             return await ctx.send("This repository has already been added!")
+        if self.bot.db_session.query(User).get(ctx.author.id) is None:
+            return await ctx.send("You need to start first! Use `!start <github username>` to start!")
 
         embed = discord.Embed(title="New repository",
                               description=f"**Url**: {github_link}\n**Extracted**: {github_parsed}", color=0x55CC33)
