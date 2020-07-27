@@ -33,8 +33,10 @@ class Leaderboard(commands.Cog):
         for commit in commits:
             num_commits[commit.user_id] = num_commits.get(commit.user_id, 0) + 1
 
+        sorted_rankings = reversed(sorted(num_commits.items(), key=lambda items: items[1]))
+
         ranking = 0
-        for userid, users_total_commits in num_commits.items():
+        for userid, users_total_commits in sorted_rankings:
             ranking += 1
             description += f"**{ranking})** <@{userid}> - {users_total_commits}\n"
 
