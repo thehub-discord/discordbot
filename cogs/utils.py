@@ -14,14 +14,17 @@ class Utils(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.logger = logging.getLogger("hub_bot.cogs.utils")
+        self.auth_headers = {"Authorization": f"Token {config.GITHUB_TOKEN}"}
+        self.github_baseuri = "https://api.github.com"
 
     async def mod_poll(self, embed: discord.Embed):
         message: discord.Message = await self.bot.get_channel(config.VERIFICATION_CHANNEL).send(embed=embed)
         await message.add_reaction(config.ACCEPT_EMOJI)
         await message.add_reaction(config.DENY_EMOJI)
 
-        def check(reaction: discord.Reaction, _):
-            return reaction.message.id == message.id
+        def check(reaction: discord.Reaction, user):
+            return reaction.message.id == message.id and user.id != self.bot.user.id
+
         await asyncio.sleep(1)
         r, _ = await self.bot.wait_for("reaction_add", check=check)
         await message.delete()
@@ -42,10 +45,9 @@ class Utils(commands.Cog):
             r = await self.request(*args, **kwargs)
         return r
 
-
     async def get_commits(self, github_user, github_repo):
-        r = await self.utils.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
-                                     headers=self.auth_headers)
+        r = await self.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
+                               headers=self.auth_headers)
         return await r.json()
 
     def parse_commits(self, commits_json: list):
@@ -60,7 +62,5 @@ class Utils(commands.Cog):
         return parsed_commits
 
 
-
 def setup(bot):
     bot.add_cog(Utils(bot))
-

@@ -15,8 +15,6 @@ class Points(commands.Cog):
         self.logger = logging.getLogger("hub_bot.cogs.points")
         self.github_account_verification_queue = []
         self.github_repository_verification_queue = []
-        self.auth_headers = {"Authorization": f"Token {config.GITHUB_TOKEN}"}
-        self.github_baseuri = "https://api.github.com"
         self.github_regex = re.compile("(https://github.com/)([A-z,-]*/[A-z,-]*)")
         self.utils = self.bot.get_cog("Utils")
 
@@ -104,6 +102,8 @@ class Points(commands.Cog):
 
     @tasks.loop(minutes=10)
     async def commit_scan_loop(self):
+        leaderboard_cog = self.bot.get_cog("Leaderboard")
+        await leaderboard_cog.create_leaderboard()
         repositories = self.bot.db_session.query(Repository).all()
         user_cache = {}
         summaries = {}
@@ -141,6 +141,7 @@ class Points(commands.Cog):
             self.logger.debug(f"Sending a dm to {user}!")
             for page in summary_pages:
                 await user.send(page)
+        await leaderboard_cog.post_leaderboard()
 
     def create_summary(self, user: discord.User, commits):
         paginator = commands.Paginator(prefix="", suffix="")
