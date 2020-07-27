@@ -125,15 +125,13 @@ class Points(commands.Cog):
                 commit["author"] = commit["author"].lower()
                 if commit["author"] not in user_cache.keys():
                     user = self.bot.db_session.query(User).filter(
-                        User.github_username == commit["author"].lower()).first()
+                        User.github_username == commit["author"]).first()
                     if user is None:
                         continue
                     user_cache[commit["author"]] = user
-                    del user
                 user = user_cache[commit["author"]]
                 old_commit = self.bot.db_session.query(Commit).filter(Commit.commit_hash == commit["hash"]).first()
                 if old_commit is not None:
-                    print("Commit already exists")
                     continue
                 database_commit = Commit(commit_hash=commit["hash"], user_id=user.id)
                 self.bot.db_session.add(database_commit)
@@ -149,7 +147,7 @@ class Points(commands.Cog):
             if user is None:
                 continue
             summary_pages = self.create_summary(user, commits)
-            print(f"Sending a dm to {user}!")
+            self.logger.debug(f"Sending a dm to {user}!")
             for page in summary_pages:
                 await user.send(page)
 
