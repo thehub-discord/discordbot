@@ -15,7 +15,7 @@ class Points(commands.Cog):
         self.logger = logging.getLogger("hub_bot.cogs.points")
         self.github_account_verification_queue = []
         self.github_repository_verification_queue = []
-        self.github_regex = re.compile("(https://github.com/)([A-z,1-9,-]*/[A-z,1-9,-]*)")
+        self.github_regex = re.compile("(https://github.com/)(.*/.*)")
         self.utils = self.bot.get_cog("Utils")
 
         self.summary_header = [
