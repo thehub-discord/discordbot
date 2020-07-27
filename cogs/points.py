@@ -94,6 +94,14 @@ class Points(commands.Cog):
             except discord.Forbidden:
                 pass
 
+    @commands.command()
+    async def points(self, ctx, user: discord.Member = None):
+        if user is None:
+            user = ctx.author
+
+        points = self.bot.db_session.query(Commit).filter(Commit.user_id == user.id).count()
+        await ctx.send(f"You have {points} points!")
+
     async def get_commits(self, github_user, github_repo):
         r = await self.utils.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
                                      headers=self.auth_headers)
