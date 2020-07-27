@@ -142,7 +142,6 @@ class Points(commands.Cog):
         self.bot.db_session.commit()
 
         for user_id, commits in summaries.items():
-            print(user_id)
             user = await self.bot.fetch_user(user_id)
             if user is None:
                 continue
