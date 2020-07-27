@@ -5,7 +5,7 @@ import logging
 from discord.ext import commands, tasks
 import config
 import discord
-from models import User, Repository
+from models import User, Repository, Commit
 import re
 
 
@@ -19,6 +19,16 @@ class Points(commands.Cog):
         self.github_baseuri = "https://api.github.com"
         self.github_regex = re.compile("(https://github.com/)([A-z,-]*/[A-z,-]*)")
         self.utils = self.bot.get_cog("Utils")
+
+        self.summary_header = [
+            "Hello {user}! Our sauce scanning bots found {total_commits} commits from you and added them to the queue",
+            "Commits that was found:"
+        ]
+
+        self.summary_format = "{commit_id}: `{commit_message}` ({commit_hash})"
+
+        # Loops
+        self.commit_scan_loop.start()
 
     @commands.command()
     async def start(self, ctx: commands.Context, github: str):
@@ -94,10 +104,67 @@ class Points(commands.Cog):
         for commit in commits_json:
             parsed_commits.append({
                 "hash": commit["sha"],
-                "author": commit["author"]["login"] if commit["author"] is not None else commit["commit"]["author"],
+                "author": commit["author"]["login"] if commit["author"] is not None else commit["commit"]["author"][
+                    "name"],
                 "message": commit["commit"]["message"]
             })
         return parsed_commits
+
+    @tasks.loop(minutes=10)
+    async def commit_scan_loop(self):
+        repositories = self.bot.db_session.query(Repository).all()
+        user_cache = {}
+        summaries = {}
+
+        for repository in repositories:
+            repository_user, repository_repo = repository.repository.split("/")
+            raw_commits = await self.get_commits(repository_user, repository_repo)
+            commits = self.parse_commits(raw_commits)
+
+            for commit in commits:
+                commit["author"] = commit["author"].lower()
+                if commit["author"] not in user_cache.keys():
+                    user = self.bot.db_session.query(User).filter(
+                        User.github_username == commit["author"].lower()).first()
+                    if user is None:
+                        continue
+                    user_cache[commit["author"]] = user
+                    del user
+                user = user_cache[commit["author"]]
+                old_commit = self.bot.db_session.query(Commit).filter(Commit.commit_hash == commit["hash"]).first()
+                if old_commit is not None:
+                    print("Commit already exists")
+                    continue
+                database_commit = Commit(commit_hash=commit["hash"], user_id=user.id)
+                self.bot.db_session.add(database_commit)
+
+                old_summary = summaries.get(user.id, [])
+                old_summary.append(commit)
+                summaries[user.id] = old_summary
+        self.bot.db_session.commit()
+
+        for user_id, commits in summaries.items():
+            print(user_id)
+            user = await self.bot.fetch_user(user_id)
+            if user is None:
+                continue
+            summary_pages = self.create_summary(user, commits)
+            print(f"Sending a dm to {user}!")
+            for page in summary_pages:
+                await user.send(page)
+
+    def create_summary(self, user: discord.User, commits):
+        paginator = commands.Paginator(prefix="", suffix="")
+
+        for line in self.summary_header:
+            paginator.add_line(line.format(user=user.name, total_commits=len(commits)))
+
+        for commit_id, commit in enumerate(commits):
+            paginator.add_line(
+                self.summary_format.format(commit_id=commit_id + 1, commit_message=commit["message"].split("\n")[0],
+                                           commit_hash=commit["hash"]))
+
+        return paginator.pages
 
 
 def setup(bot):
