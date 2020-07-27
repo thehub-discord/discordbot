@@ -25,7 +25,6 @@ class Utils(commands.Cog):
         def check(reaction: discord.Reaction, user):
             return reaction.message.id == message.id and user.id != self.bot.user.id
 
-        await asyncio.sleep(1)
         r, _ = await self.bot.wait_for("reaction_add", check=check)
         await message.delete()
         if str(r) == config.ACCEPT_EMOJI:
