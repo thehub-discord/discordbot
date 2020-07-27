@@ -43,6 +43,23 @@ class Utils(commands.Cog):
         return r
 
 
+    async def get_commits(self, github_user, github_repo):
+        r = await self.utils.request("GET", f"{self.github_baseuri}/repos/{github_user}/{github_repo}/commits",
+                                     headers=self.auth_headers)
+        return await r.json()
+
+    def parse_commits(self, commits_json: list):
+        parsed_commits = []
+        for commit in commits_json:
+            parsed_commits.append({
+                "hash": commit["sha"],
+                "author": commit["author"]["login"] if commit["author"] is not None else commit["commit"]["author"][
+                    "name"],
+                "message": commit["commit"]["message"]
+            })
+        return parsed_commits
+
+
 
 def setup(bot):
     bot.add_cog(Utils(bot))
