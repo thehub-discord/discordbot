@@ -64,7 +64,7 @@ class Points(commands.Cog):
     async def add_repository(self, ctx, github_link: str):
         github_link = github_link.replace(".git", "").lower()
         github_search = self.github_regex.search(github_link)
-        if github_search is None or len(github_link) > 50:
+        if github_search is None or len(github_link) > 1000:
             return await ctx.send("This is not a valid github repository url!")
         github_parsed = github_search.group(2)
         if "." in github_parsed:
