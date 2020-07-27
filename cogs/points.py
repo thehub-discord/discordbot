@@ -67,6 +67,8 @@ class Points(commands.Cog):
         if github_search is None or len(github_link) > 50:
             return await ctx.send("This is not a valid github repository url!")
         github_parsed = github_search.group(2)
+        if "." in github_parsed:
+            return await ctx.send("This is not a valid github repository url!")
         if github_parsed in self.github_repository_verification_queue:
             return await ctx.send("This repository is already in the queue!")
         if self.bot.db_session.query(Repository).get(github_parsed) is not None:
