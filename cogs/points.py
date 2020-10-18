@@ -17,6 +17,8 @@ class Points(commands.Cog):
         self.github_repository_verification_queue = []
         self.github_regex = re.compile("(https://github.com/)(.*/.*)")
         self.utils = self.bot.get_cog("Utils")
+        self.commit_webhook = discord.Webhook.from_url(config.COMMIT_LOG_WEBHOOK,
+                                                       adapter=discord.AsyncWebhookAdapter(self.bot.http_session))
 
         self.summary_header = [
             "Hello {user}! Our sauce scanning bots found {total_commits} commits from you and added them to the queue",
@@ -133,6 +135,13 @@ class Points(commands.Cog):
                     continue
                 database_commit = Commit(commit_hash=commit["hash"], user_id=user.id)
                 self.bot.db_session.add(database_commit)
+                discord_user = self.bot.get_user(user)
+                if discord_user is not None:
+                    embed = discord.Embed(title="Commit added",
+                                          description=f"(https://github.com/{repository}/commit{commit['hash']}",
+                                          color=0x00FFFF)
+                    embed.set_author(name=str(discord_user), icon_url=discord_user.avatar_url)
+                    await self.commit_webhook.send(embed=embed)
 
                 old_summary = summaries.get(user.id, [])
                 old_summary.append(commit)
