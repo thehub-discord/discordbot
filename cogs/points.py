@@ -139,7 +139,7 @@ class Points(commands.Cog):
                 old_summary = summaries.get(user.id, [])
                 old_summary.append(commit)
                 summaries[user.id] = old_summary
-                repo_cache[commit["hash"]] = repository
+                repo_cache[commit["hash"]] = repository.repository
         self.bot.db_session.commit()
 
         for user_id, commits in summaries.items():
@@ -148,7 +148,7 @@ class Points(commands.Cog):
                 continue
             discord_user = self.bot.get_user(user)
             for commit in commits:
-                if discord_user is not None:
+                if user is not None:
                     embed = discord.Embed(title="Commit added",
                                           description=f"https://github.com/{repo_cache[commit['hash']]}/commits/{commit['hash']}",
                                           color=0x00FFFF)
