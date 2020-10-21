@@ -115,6 +115,7 @@ class Points(commands.Cog):
         repositories = self.bot.db_session.query(Repository).all()
         user_cache = {}
         summaries = {}
+        repo_cache = {}
 
         for repository in repositories:
             repository_user, repository_repo = repository.repository.split("/")
@@ -135,23 +136,24 @@ class Points(commands.Cog):
                     continue
                 database_commit = Commit(commit_hash=commit["hash"], user_id=user.id)
                 self.bot.db_session.add(database_commit)
-                discord_user = self.bot.get_user(user)
-                if discord_user is not None:
-                    embed = discord.Embed(title="Commit added",
-                                          description=f"(https://github.com/{repository}/commit{commit['hash']}",
-                                          color=0x00FFFF)
-                    embed.set_author(name=str(discord_user), icon_url=discord_user.avatar_url)
-                    await self.commit_webhook.send(embed=embed)
-
                 old_summary = summaries.get(user.id, [])
                 old_summary.append(commit)
                 summaries[user.id] = old_summary
+                repo_cache[commit["hash"]] = repository
         self.bot.db_session.commit()
 
         for user_id, commits in summaries.items():
             user = await self.bot.fetch_user(user_id)
             if user is None:
                 continue
+            discord_user = self.bot.get_user(user)
+            for commit in commits:
+                if discord_user is not None:
+                    embed = discord.Embed(title="Commit added",
+                                          description=f"https://github.com/{repo_cache[commit['hash']]}/commits/{commit['hash']}",
+                                          color=0x00FFFF)
+                    embed.set_author(name=str(user), icon_url=user.avatar_url)
+                    await self.commit_webhook.send(embed=embed)
             summary_pages = self.create_summary(user, commits)
             self.logger.debug(f"Sending a dm to {user}!")
             for page in summary_pages:
