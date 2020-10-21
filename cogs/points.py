@@ -149,9 +149,9 @@ class Points(commands.Cog):
             discord_user = self.bot.get_user(user)
             for commit in commits:
                 if user is not None:
-                    embed = discord.Embed(title="Commit added",
-                                          description=f"https://github.com/{repo_cache[commit['hash']]}/commits/{commit['hash']}",
-                                          color=0x00FFFF)
+                    embed = discord.Embed(
+                        description=f"https://github.com/{repo_cache[commit['hash']]}/commits/{commit['hash']}",
+                        color=0x00FFFF)
                     embed.set_author(name=str(user), icon_url=user.avatar_url)
                     await self.commit_webhook.send(embed=embed)
             summary_pages = self.create_summary(user, commits)
