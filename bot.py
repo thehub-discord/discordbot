@@ -9,7 +9,6 @@ from pathlib import Path
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker, Session
 from aiohttp import ClientSession
-import warnings
 
 import logging
 import config
@@ -23,7 +22,6 @@ class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.filterwarnings("ignore")
         self.db_engine = sqlalchemy.create_engine(config.DATABASE_URI, echo=False)
         self.db_session: Session = sessionmaker()(bind=self.db_engine)
         self.http_session = ClientSession()
