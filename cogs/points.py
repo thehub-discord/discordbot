@@ -150,7 +150,7 @@ class Points(commands.Cog):
             for commit in commits:
                 if user is not None:
                     embed = discord.Embed(
-                        description=f"https://github.com/{repo_cache[commit['hash']]}/commits/{commit['hash']}",
+                        description=f"https://github.com/{repo_cache[commit['hash']]}/commit/{commit['hash']}",
                         color=0x00FFFF)
                     embed.set_author(name=str(user), icon_url=user.avatar_url)
                     await self.commit_webhook.send(embed=embed)
