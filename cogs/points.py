@@ -157,7 +157,10 @@ class Points(commands.Cog):
             summary_pages = self.create_summary(user, commits)
             self.logger.debug(f"Sending a dm to {user}!")
             for page in summary_pages:
-                await user.send(page)
+                try:
+                    await user.send(page)
+                except:
+                    pass
         await leaderboard_cog.post_leaderboard()
 
     def create_summary(self, user: discord.User, commits):
